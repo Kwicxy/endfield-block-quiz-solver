@@ -5,7 +5,7 @@ class QuizSolver:
     def __init__(self):
         self.limits = fu.get_quiz_limits('../resources/quiz.toml')
         self.board = fu.get_quiz_board('../resources/quiz.toml')
-        self.blocks = fu.get_quiz_blocks('../resources/candidates.toml')
+        self.blocks = fu.get_quiz_blocks('../resources/blocks.toml')
 
     def can_place(self, block: Block, row: int, col: int) -> bool:
         """ Check if a block can be placed on the board at the specified position """

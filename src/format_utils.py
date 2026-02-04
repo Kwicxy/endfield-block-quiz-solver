@@ -41,4 +41,4 @@ def get_test_answer(file_path: str) -> list[list[int]]:
     return board
 
 if __name__ == '__main__':
-    print(get_quiz_blocks('../test/candidates.toml')[2])
+    print(get_quiz_blocks('../test/blocks.toml')[2])

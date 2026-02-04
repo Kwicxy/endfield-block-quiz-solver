@@ -25,7 +25,7 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
 
     # Create color matrix based on block types
     nrows, ncols = board.nrows, board.ncols
-    color_matrix = np.zeros((nrows, ncols))
+    color_matrix = [[0 for j in range(ncols)] for i in range(nrows)]
 
     for i in range(nrows):
         for j in range(ncols):

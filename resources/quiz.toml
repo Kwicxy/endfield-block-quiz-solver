@@ -1,6 +1,11 @@
 nrows = 5
 ncols = 5
 
+invalid = [
+    [0, 0],
+    [0, 4]
+]
+
 [[limits]]
 type = 0
 cols = [3, 4, 5, 4, 3]
@@ -13,17 +18,13 @@ rows = [0, 0, 0, 0, 0]
 
 [[fixed]]
 type = 0
-coords = []
+coords = [
+    [2, 0]
+]
 
 [[fixed]]
 type = 1
 coords = []
-
-invalid = [
-    [0, 0],
-    [0, 4]
-]
-
 
 [[blocks]]
 index = 1
@@ -37,8 +38,8 @@ shape = [
 index = 2
 type = 0
 shape = [
-    [0, 0, 1],
-    [1, 1, 1]
+    [0, 1],
+    [1, 1]
 ]
 
 [[blocks]]

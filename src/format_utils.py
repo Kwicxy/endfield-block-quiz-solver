@@ -2,11 +2,13 @@ import tomllib
 
 from entities import Block, Board
 
+
 def read_toml_file(file_path: str) -> dict:
     """Reads a TOML file and returns its contents as a dictionary."""
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
     return data
+
 
 def get_quiz_board(file_path: str) -> Board:
     with open(file_path, 'rb') as file:
@@ -24,6 +26,7 @@ def get_quiz_board(file_path: str) -> Board:
 
     return board
 
+
 def get_quiz_limits(file_path: str) -> dict[int, list[list[int]]]:
     """
     Get limits for each block type from quiz file.
@@ -39,6 +42,7 @@ def get_quiz_limits(file_path: str) -> dict[int, list[list[int]]]:
             limits_dict[block_type] = [limit_entry['cols'], limit_entry['rows']]
 
     return limits_dict
+
 
 def get_quiz_blocks(file_path: str) -> list[Block]:
     with open(file_path, 'rb') as file:

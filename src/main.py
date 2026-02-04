@@ -3,6 +3,7 @@ import format_utils as fu
 import visualisation as vis
 from matplotlib import pyplot as plt
 
+
 class QuizSolver:
     def __init__(self):
         self.limits = fu.get_quiz_limits('../resources/quiz.toml')
@@ -80,9 +81,9 @@ class QuizSolver:
         for block_type in sorted(self.limits.keys()):
             limits = self.limits[block_type]
             print(f"Type {block_type} Limits:")
-            print('  '+' '.join([str(i) for i in limits[0]]))
+            print('  ' + ' '.join([str(i) for i in limits[0]]))
             for (i, row) in enumerate(self.board.values):
-                print(str(limits[1][i])+' '+' '.join([str(cell) if cell >=0 else 'X' for cell in row]))
+                print(str(limits[1][i]) + ' ' + ' '.join([str(cell) if cell >= 0 else 'X' for cell in row]))
             print()
 
     def backtrack(self, used: list[bool], rotations: list[int]) -> bool:
@@ -163,8 +164,6 @@ class QuizSolver:
         else:
             print("No solution found.")
             return False
-
-
 
 
 if __name__ == '__main__':

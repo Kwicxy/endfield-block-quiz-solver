@@ -1,5 +1,7 @@
 from entities import Block, Board
 import format_utils as fu
+import visualisation as vis
+from matplotlib import pyplot as plt
 
 class QuizSolver:
     def __init__(self):
@@ -138,6 +140,11 @@ class QuizSolver:
             for idx, rotation in enumerate(rotations):
                 if used[idx]:
                     print(f"Block {self.blocks[idx].index}: Rotated {rotation * 90} degrees")
+
+            # Visualize the solution
+            vis.visualize_solution(self.board, self.blocks, self.limits)
+            plt.show()
+
             return True
         else:
             print("No solution found.")

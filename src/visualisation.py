@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 from entities import Board, Block
 
-plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+plt.rcParams['font.sans-serif'] = ['Avenir Next', 'DejaVu Sans', 'Liberation Sans', 'Bitstream Vera Sans', 'sans-serif']
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['figure.dpi'] = 200
 
@@ -44,7 +44,7 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
                 color_matrix[i][j] = block_type + 1
 
     # Create color map: disabled=-1(gray), empty=0(white), type0=1(light blue), type1=2(light red), etc.
-    colors = ['#808080', '#FFFFFF', '#90EE90', '#ADD8E6', '#FFB6C1', '#FFD700', '#FFA07A']
+    colors = ['#606060', '#FFFFFF', '#90EE90', '#ADD8E6', '#FFB6C1', '#FFD700', '#FFA07A']
     max_color_idx = int(np.max(color_matrix))
     cmap = ListedColormap(colors[:max_color_idx + 2])
 
@@ -96,18 +96,22 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
                      fixed_cells_map[(i, j-1)] != fixed_cells_map[(i, j)])):
                     ax.plot([j - 0.5, j - 0.5], [i - 0.5, i + 0.5], 'k-', linewidth=2)
 
-    # Add block index labels in each cell
+    # Add block index labels in each cell (once for each block)
+    displayed_blocks = set()
     for i in range(nrows):
         for j in range(ncols):
             cell_val = board.values[i][j]
             # Check if this is a fixed cell
+
             if (i, j) in fixed_cells_map:
                 fixed_type = fixed_cells_map[(i, j)]
-                ax.text(j, i, f'F{fixed_type}', ha='center', va='center',
-                       fontsize=12, fontweight='bold', color='darkblue')
+                ax.text(j, i, 'O', ha='center', va='center',
+                       fontsize=12, fontweight='bold', color='black')
             elif cell_val > 0:
-                ax.text(j, i, str(cell_val), ha='center', va='center',
-                       fontsize=14, fontweight='bold', color='black')
+                if cell_val not in displayed_blocks:
+                    displayed_blocks.add(cell_val)
+                    ax.text(j, i, str(cell_val), ha='center', va='center',
+                           fontsize=14, fontweight='bold', color='black')
             elif cell_val == -1:
                 ax.text(j, i, 'X', ha='center', va='center',
                        fontsize=12, color='white')
@@ -145,9 +149,6 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
     # Move x-axis labels to top
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top')
-
-    # Add title
-    ax.set_title('Solution', fontsize=16, fontweight='bold')
 
     # Add legend
     legend_elements = []

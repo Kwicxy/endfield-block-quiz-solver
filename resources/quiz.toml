@@ -1,15 +1,24 @@
-limits_type0 = [
-    [3, 4, 5, 4, 3],
-    [1, 3, 5, 5, 5]
-]
-limits_type1 = [
-    [0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0]
-]
 nrows = 5
 ncols = 5
-fixed_type0 = []
-fixed_type1 = []
+
+[[limits]]
+type = 0
+cols = [3, 4, 5, 4, 3]
+rows = [1, 3, 5, 5, 5]
+
+[[limits]]
+type = 1
+cols = [0, 0, 0, 0, 0]
+rows = [0, 0, 0, 0, 0]
+
+[[fixed]]
+type = 0
+coords = []
+
+[[fixed]]
+type = 1
+coords = []
+
 invalid = [
     [0, 0],
     [0, 4]

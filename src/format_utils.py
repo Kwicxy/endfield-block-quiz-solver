@@ -12,64 +12,39 @@ def get_quiz_board(file_path: str) -> Board:
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
 
-    # Support new coordinate-based format
-    if 'nrows' in data and 'ncols' in data:
-        nrows = data['nrows']
-        ncols = data['ncols']
-        board = Board(nrows, ncols)
+    nrows = data['nrows']
+    ncols = data['ncols']
+    board = Board(nrows, ncols)
 
-        # Mark invalid cells
-        if 'invalid' in data:
-            for coord in data['invalid']:
-                row, col = coord
-                board.values[row][col] = -1
-
-        # Mark fixed cells for each type
-        for key in data:
-            if key.startswith('fixed_type'):
-                type_num = int(key.replace('fixed_type', ''))
-                for coord in data[key]:
-                    row, col = coord
-                    board.values[row][col] = -(type_num + 2)  # -2 for type0, -3 for type1, etc.
-
-    # Support old matrix-based format
-    elif 'board' in data:
-        nrows = len(data['board'])
-        ncols = len(data['board'][0]) if nrows > 0 else 0
-        board = Board(nrows, ncols)
-        board.fill_from_matrix(data['board'])
-    else:
-        raise ValueError("Invalid board format in config file")
+    # Mark invalid cells
+    if 'invalid' in data:
+        for coord in data['invalid']:
+            row, col = coord
+            board.values[row][col] = -1
 
     return board
 
 def get_quiz_limits(file_path: str) -> dict[int, list[list[int]]]:
     """
     Get limits for each block type from quiz file.
-    Returns a dict mapping type -> limits array
+    Returns a dict mapping type -> [cols_limits, rows_limits]
     """
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
 
     limits_dict = {}
-    # Support old format with single 'limits' key
     if 'limits' in data:
-        limits_dict[0] = data['limits']
-
-    # Support new format with 'limits_type0', 'limits_type1', etc.
-    for key in data:
-        if key.startswith('limits_type'):
-            type_num = int(key.replace('limits_type', ''))
-            limits_dict[type_num] = data[key]
+        for limit_entry in data['limits']:
+            block_type = limit_entry['type']
+            limits_dict[block_type] = [limit_entry['cols'], limit_entry['rows']]
 
     return limits_dict
 
 def get_quiz_blocks(file_path: str) -> list[Block]:
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
-    blocks = []
 
-    # New format: blocks array in quiz.toml
+    blocks = []
     if 'blocks' in data:
         for block_data in data['blocks']:
             blocks.append(Block(
@@ -77,15 +52,6 @@ def get_quiz_blocks(file_path: str) -> list[Block]:
                 index=block_data['index'],
                 type=block_data.get('type', 0)
             ))
-    else:
-        # Old format: separate candidates file with numbered sections
-        for index in data:
-            if isinstance(data[index], dict) and 'shape' in data[index]:
-                blocks.append(Block(
-                    data[index]['shape'],
-                    index=int(index),
-                    type=data[index].get('type', 0)
-                ))
 
     return blocks
 
@@ -99,12 +65,13 @@ def get_fixed_cells_map(file_path: str) -> dict[tuple[int, int], int]:
         data = tomllib.load(file)
 
     fixed_map = {}
-    for key in data:
-        if key.startswith('fixed_type'):
-            type_num = int(key.replace('fixed_type', ''))
-            for coord in data[key]:
+    if 'fixed' in data:
+        for fixed_entry in data['fixed']:
+            block_type = fixed_entry['type']
+            coords = fixed_entry.get('coords', [])
+            for coord in coords:
                 row, col = coord
-                fixed_map[(row, col)] = type_num
+                fixed_map[(row, col)] = block_type
 
     return fixed_map
 

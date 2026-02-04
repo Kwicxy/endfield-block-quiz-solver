@@ -1,83 +1,119 @@
-from entities import Block, Board
+from entities import Block
 import format_utils as fu
 import visualisation as vis
-from matplotlib import pyplot as plt
+
+QUIZ_FILE_PATH = '../resources/quiz.toml'
 
 
 class QuizSolver:
     def __init__(self):
-        self.limits = fu.get_quiz_limits('../resources/quiz.toml')
-        self.board = fu.get_quiz_board('../resources/quiz.toml')
-        self.blocks = fu.get_quiz_blocks('../resources/quiz.toml')
-        self.fixed_cells_map = fu.get_fixed_cells_map('../resources/quiz.toml')
+        self.limits = fu.get_quiz_limits(QUIZ_FILE_PATH)
+        self.board = fu.get_quiz_board(QUIZ_FILE_PATH)
+        self.blocks = fu.get_quiz_blocks(QUIZ_FILE_PATH)
+        self.fixed_cells_map = fu.get_fixed_cells_map(QUIZ_FILE_PATH)
+
+        # Pre-calculate data structures for efficient checking
+        self.block_type_map = {block.index: block.type for block in self.blocks}
+        self.row_cnt = [[0] * self.board.nrows for _ in range(len(self.limits))]
+        self.col_cnt = [[0] * self.board.ncols for _ in range(len(self.limits))]
+        self._init_fixed_cnt()
+
+        # Pre-calculate block complexities for heuristic ordering
+        self.block_complexity = self._calc_block_complexity()
+
+    def _init_fixed_cnt(self) -> None:
+        """Initialize row and column counts based on fixed cells"""
+        for (row, col), block_type in self.fixed_cells_map.items():
+            self.row_cnt[block_type][row] += 1
+            self.col_cnt[block_type][col] += 1
+
+    def _calc_block_complexity(self) -> list[int]:
+        """Calculate complexity of each block based on occupied cells (used for heuristic ordering)"""
+        complexity = []
+        for block in self.blocks:
+            cell_cnt = sum(sum(row) for row in block.shape)
+            complexity.append(cell_cnt)
+        return complexity
 
     def can_place(self, block: Block, row: int, col: int) -> bool:
-        """ Check if a block can be placed on the board at the specified position """
-        # Check boundaries
+        """Check if a block can be placed at the specified position"""
+        # Boundary check
         if row + len(block.shape) > self.board.nrows or col + len(block.shape[0]) > self.board.ncols:
             return False
 
-        # Check for overlaps
+        # Counts of affected rows and cols
+        row_add = [0] * self.board.nrows
+        col_add = [0] * self.board.ncols
+
+        # Overlap check
         for (i, shape_row) in enumerate(block.shape):
             for (j, cell) in enumerate(shape_row):
-                if cell == 1 and self.board.values[row + i][col + j] != 0:
+                if cell == 1:
+                    if self.board.values[row + i][col + j] != 0:
+                        return False
+                    # Count affected rows and cols
+                    row_add[row + i] += 1
+                    col_add[col + j] += 1
+
+        # Check if placing the block would exceed limits
+        block_type = block.type
+        if block_type in self.limits:
+            limits = self.limits[block_type]
+
+            # Check row limits
+            for r in range(self.board.nrows):
+                if row_add[r] > 0 and self.row_cnt[block_type][r] + row_add[r] > limits[1][r]:
+                    return False
+
+            # Check column limits
+            for c in range(self.board.ncols):
+                if col_add[c] > 0 and self.col_cnt[block_type][c] + col_add[c] > limits[0][c]:
                     return False
 
         return True
 
+    def update_cnt(self, block: Block, row: int, col: int, delta: int) -> None:
+        """Update row and column counts when placing/removing a block
+        Args:
+            block: Block that is being placed/removed
+            row: Destination row
+            col: Destination column
+            delta: `1` for placing, `-1` for removing
+        """
+        block_type = block.type
+        for (i, shape_row) in enumerate(block.shape):
+            for (j, cell) in enumerate(shape_row):
+                if cell == 1:
+                    self.row_cnt[block_type][row + i] += delta
+                    self.col_cnt[block_type][col + j] += delta
+
     def check_limits(self) -> int:
         """
-        Check if the current board state respects the row and column limits for each block type
-        Fixed cells (represented by negative values < -1) are counted towards their type's limits
+        Check if current board state meets the limits
         Returns:
             `-1` if limits are exceeded,
             `1` if limits are not yet reached,
             `0` if limits are exactly met
         """
-        # Build a mapping of block index to block type
-        block_type_map = {block.index: block.type for block in self.blocks}
-
-        # Check limits for each type
         for block_type, limits in self.limits.items():
-            # Check row limits (limits[1])
+            # Check row limits
             for i in range(self.board.nrows):
-                filled_cells = 0
-                for j in range(self.board.ncols):
-                    cell_val = self.board.values[i][j]
-                    # Count fixed cells of this type (negative values)
-                    if (i, j) in self.fixed_cells_map and self.fixed_cells_map[(i, j)] == block_type:
-                        filled_cells += 1
-                    # Count placed blocks of this type (positive values)
-                    elif cell_val > 0 and block_type_map.get(cell_val) == block_type:
-                        filled_cells += 1
-
-                if filled_cells > limits[1][i]:
+                if self.row_cnt[block_type][i] > limits[1][i]:
                     return -1
-                elif filled_cells < limits[1][i]:
+                elif self.row_cnt[block_type][i] < limits[1][i]:
                     return 1
 
-            # Check column limits (limits[0])
+            # Check column limits
             for j in range(self.board.ncols):
-                filled_cells = 0
-                for i in range(self.board.nrows):
-                    cell_val = self.board.values[i][j]
-                    # Count fixed cells of this type
-                    if (i, j) in self.fixed_cells_map and self.fixed_cells_map[(i, j)] == block_type:
-                        filled_cells += 1
-                    # Count placed blocks of this type
-                    elif cell_val > 0 and block_type_map.get(cell_val) == block_type:
-                        filled_cells += 1
-
-                if filled_cells > limits[0][j]:
+                if self.col_cnt[block_type][j] > limits[0][j]:
                     return -1
-                elif filled_cells < limits[0][j]:
+                elif self.col_cnt[block_type][j] < limits[0][j]:
                     return 1
 
         return 0
 
-    def display(self):
-        """Display the board with limits for each type"""
-        # Display limits for each type
+    def display(self) -> None:
+        """Print the current board state along with limits"""
         for block_type in sorted(self.limits.keys()):
             limits = self.limits[block_type]
             print(f"Type {block_type} Limits:")
@@ -88,58 +124,68 @@ class QuizSolver:
 
     def backtrack(self, used: list[bool], rotations: list[int]) -> bool:
         """
-        Backtracking algorithm to solve the puzzle
+        Optimized backtracking solver with heuristic ordering and incremental checks.
         Args:
-            used: Boolean array tracking which blocks have been placed
-            rotations: Array tracking rotation state of each block
+            used: Boolean array indicating whether each block has been used
+            rotations: Array to store the rotation state of each block
         Returns:
             True if a solution is found, False otherwise
         """
-        # Check current state
+        # Incremental limit check
         limit_state = self.check_limits()
         if limit_state == -1:
-            # Limits exceeded, this path is invalid
             return False
         elif limit_state == 0:
-            # All limits satisfied, puzzle solved!
             return True
 
-        # Try placing each unused block
-        for block_idx in range(len(self.blocks)):
-            if used[block_idx]:
+        # Prioritize blocks based on complexity (number of occupied cells)
+        block_indices = [i for i in range(len(self.blocks)) if not used[i]]
+        if not block_indices:
+            return limit_state == 0
+
+        block_indices.sort(key=lambda i: self.block_complexity[i], reverse=True)
+
+        # Pick the most complex unused block
+        block_idx = block_indices[0]
+        block = self.blocks[block_idx]
+
+        # Try all 4 rotations
+        for rotation in range(4):
+            # Find all valid positions for the current rotation
+            valid_positions = []
+            for row in range(self.board.nrows):
+                for col in range(self.board.ncols):
+                    if self.can_place(block, row, col):
+                        valid_positions.append((row, col))
+
+            # Continue to next rotation if no valid positions
+            if not valid_positions:
+                block.rotate()
                 continue
 
-            block = self.blocks[block_idx]
+            # Try placing the block in all valid positions
+            for row, col in valid_positions:
+                # Try placing the block
+                self.board.place_block(block, row, col)
+                self.update_cnt(block, row, col, 1)
+                used[block_idx] = True
 
-            # Try all 4 rotations
-            for rotation in range(4):
-                # Try all positions on the board
-                for row in range(self.board.nrows):
-                    for col in range(self.board.ncols):
-                        if self.can_place(block, row, col):
-                            # Place the block
-                            self.board.place_block(block, row, col)
-                            used[block_idx] = True
+                # Try to solve recursively
+                if self.backtrack(used, rotations):
+                    rotations[block_idx] = rotation
+                    return True
 
-                            # Recursively try to solve
-                            if self.backtrack(used, rotations):
-                                rotations[block_idx] = rotation
-                                return True
+                # Backtrack: remove the block
+                self.board.remove_block(block, row, col)
+                self.update_cnt(block, row, col, -1)
+                used[block_idx] = False
 
-                            # Backtrack: remove the block
-                            self.board.remove_block(block, row, col)
-                            used[block_idx] = False
-
-                # Rotate for next iteration
-                block.rotate()
-
-            # Restore original rotation after trying all 4 rotations
-            # (We've rotated 4 times, so it's back to original)
+            # Try next rotation
+            block.rotate()
 
         return False
 
     def solve(self):
-        """Solve the puzzle using backtracking algorithm"""
         print("Initial Board:")
         self.display()
         print()
@@ -148,7 +194,8 @@ class QuizSolver:
         rotations = [0] * len(self.blocks)
 
         if self.backtrack(used, rotations):
-            print("Solution Found!")
+            print(f"\nSolution Found!")
+
             self.display()
             print()
             print("Block Placements:")
@@ -156,13 +203,11 @@ class QuizSolver:
                 if used[idx]:
                     print(f"Block {self.blocks[idx].index}: Rotated {rotation * 90} degrees")
 
-            # Visualize the solution
             vis.visualize_solution(self.board, self.blocks, self.limits, self.fixed_cells_map)
-            plt.show()
 
             return True
         else:
-            print("No solution found.")
+            print(f"\nNo solution found.")
             return False
 
 

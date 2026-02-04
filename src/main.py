@@ -5,7 +5,7 @@ class QuizSolver:
     def __init__(self):
         self.limits = fu.get_quiz_limits('../resources/quiz.toml')
         self.board = fu.get_quiz_board('../resources/quiz.toml')
-        self.blocks = fu.get_quiz_blocks('../resources/blocks.toml')
+        self.blocks = fu.get_quiz_blocks('../resources/quiz.toml')
 
     def can_place(self, block: Block, row: int, col: int) -> bool:
         """ Check if a block can be placed on the board at the specified position """
@@ -23,34 +23,51 @@ class QuizSolver:
 
     def check_limits(self) -> int:
         """
-        Check if the current board state respects the row and column limits
+        Check if the current board state respects the row and column limits for each block type
         Returns:
             `-1` if limits are exceeded,
             `1` if limits are not yet reached,
             `0` if limits are exactly met
         """
-        # Check row limits (self.limits[1])
-        for (i, row) in enumerate(self.board.values):
-            filled_cells = sum(1 for cell in row if cell > 0)
-            if filled_cells > self.limits[1][i]:
-                return -1
-            elif filled_cells < self.limits[1][i]:
-                return 1
+        # Build a mapping of block index to block type
+        block_type_map = {block.index: block.type for block in self.blocks}
 
-        # Check column limits (self.limits[0])
-        for j in range(self.board.ncols):
-            filled_cells = sum(1 for i in range(self.board.nrows) if self.board.values[i][j] > 0)
-            if filled_cells > self.limits[0][j]:
-                return -1
-            elif filled_cells < self.limits[0][j]:
-                return 1
+        # Check limits for each type
+        for block_type, limits in self.limits.items():
+            # Check row limits (limits[1])
+            for (i, row) in enumerate(self.board.values):
+                filled_cells = sum(
+                    1 for cell in row
+                    if cell > 0 and block_type_map.get(cell) == block_type
+                )
+                if filled_cells > limits[1][i]:
+                    return -1
+                elif filled_cells < limits[1][i]:
+                    return 1
+
+            # Check column limits (limits[0])
+            for j in range(self.board.ncols):
+                filled_cells = sum(
+                    1 for i in range(self.board.nrows)
+                    if self.board.values[i][j] > 0 and block_type_map.get(self.board.values[i][j]) == block_type
+                )
+                if filled_cells > limits[0][j]:
+                    return -1
+                elif filled_cells < limits[0][j]:
+                    return 1
 
         return 0
 
     def display(self):
-        print('  '+' '.join([str(i) for i in self.limits[0]]))
-        for (i, row) in enumerate(self.board.values):
-            print(str(self.limits[1][i])+' '+' '.join([str(cell) if cell >=0 else 'X' for cell in row]))
+        """Display the board with limits for each type"""
+        # Display limits for each type
+        for block_type in sorted(self.limits.keys()):
+            limits = self.limits[block_type]
+            print(f"Type {block_type} Limits:")
+            print('  '+' '.join([str(i) for i in limits[0]]))
+            for (i, row) in enumerate(self.board.values):
+                print(str(limits[1][i])+' '+' '.join([str(cell) if cell >=0 else 'X' for cell in row]))
+            print()
 
     def backtrack(self, used: list[bool], rotations: list[int]) -> bool:
         """

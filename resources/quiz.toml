@@ -1,21 +1,25 @@
+# 行数、列数
 nrows = 5
 ncols = 5
 
+# 禁用单元格
 invalid = [
     [0, 0],
     [0, 4]
 ]
 
+# 每种颜色的行列限制数量
 [[limits]]
-type = 0
-cols = [3, 4, 5, 4, 3]
-rows = [1, 3, 5, 5, 5]
+type = 0    # 颜色0
+cols = [3, 4, 5, 4, 3]  # 列方向
+rows = [1, 3, 5, 5, 5]  # 行方向
 
 [[limits]]
-type = 1
+type = 1    # 颜色1（若没有颜色1可省略）
 cols = [0, 0, 0, 0, 0]
 rows = [0, 0, 0, 0, 0]
 
+# 固定单元格，同样分为两种颜色
 [[fixed]]
 type = 0
 coords = [
@@ -26,6 +30,7 @@ coords = [
 type = 1
 coords = []
 
+# 可用图块，每个图块包含索引、颜色类型和形状
 [[blocks]]
 index = 1
 type = 0

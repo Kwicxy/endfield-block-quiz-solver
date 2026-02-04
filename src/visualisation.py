@@ -164,25 +164,5 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
                  bbox_to_anchor=(1, 0.5), fontsize=10)
 
     plt.tight_layout()
-    return fig
-
-
-if __name__ == '__main__':
-    import format_utils as fu
-
-    # Load test data
-    limits = fu.get_quiz_limits('../resources/quiz.toml')
-    board = fu.get_quiz_board('../resources/quiz.toml')
-    blocks = fu.get_quiz_blocks('../resources/quiz.toml')
-
-    # For testing, place some blocks manually
-    board.values = [
-        [1, 1, 3, 3],
-        [2, 2, 3, 4],
-        [0, 0, -1, 4],
-        [0, 0, 0, -1]
-    ]
-
-    visualize_solution(board, blocks, limits)
     plt.show()
-
+    return fig

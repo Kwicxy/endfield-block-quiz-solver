@@ -7,7 +7,7 @@ plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['figure.dpi'] = 200
 
-def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list[list[int]]]):
+def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list[list[int]]], fixed_cells_map: dict[tuple[int, int], int] = None):
     """
     Visualize the puzzle solution using matplotlib
 
@@ -15,7 +15,11 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
         board: The solved board
         blocks: List of blocks used in the puzzle
         limits: Dictionary mapping block type to [col_limits, row_limits]
+        fixed_cells_map: Dictionary mapping (row, col) to block type for fixed cells
     """
+    if fixed_cells_map is None:
+        fixed_cells_map = {}
+
     # Build mapping from block index to block type
     block_type_map = {block.index: block.type for block in blocks}
 
@@ -26,7 +30,11 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
     for i in range(nrows):
         for j in range(ncols):
             cell_val = board.values[i][j]
-            if cell_val == -1:
+            # Check if this is a fixed cell
+            if (i, j) in fixed_cells_map:
+                fixed_type = fixed_cells_map[(i, j)]
+                color_matrix[i][j] = fixed_type + 1
+            elif cell_val == -1:
                 color_matrix[i][j] = -1  # Disabled cell
             elif cell_val == 0:
                 color_matrix[i][j] = 0  # Empty cell
@@ -56,10 +64,16 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
                 # Border lines
                 ax.plot([j - 0.5, j + 0.5], [i - 0.5, i - 0.5], 'k-', linewidth=2)
             else:
-                # Internal lines: draw if cells have different block indices
-                upper_cell = board.values[i - 1][j]
-                lower_cell = board.values[i][j]
-                if upper_cell != lower_cell:
+                # Internal lines: draw if cells are different
+                upper_val = board.values[i - 1][j]
+                lower_val = board.values[i][j]
+                upper_is_fixed = (i - 1, j) in fixed_cells_map
+                lower_is_fixed = (i, j) in fixed_cells_map
+
+                # Different if: different values, or one is fixed and other isn't
+                if (upper_val != lower_val or upper_is_fixed != lower_is_fixed or
+                    (upper_is_fixed and lower_is_fixed and
+                     fixed_cells_map[(i-1, j)] != fixed_cells_map[(i, j)])):
                     ax.plot([j - 0.5, j + 0.5], [i - 0.5, i - 0.5], 'k-', linewidth=2)
 
     # Draw vertical lines
@@ -70,17 +84,28 @@ def visualize_solution(board: Board, blocks: list[Block], limits: dict[int, list
                 # Border lines
                 ax.plot([j - 0.5, j - 0.5], [i - 0.5, i + 0.5], 'k-', linewidth=2)
             else:
-                # Internal lines: draw if cells have different block indices
-                left_cell = board.values[i][j - 1]
-                right_cell = board.values[i][j]
-                if left_cell != right_cell:
+                # Internal lines: draw if cells are different
+                left_val = board.values[i][j - 1]
+                right_val = board.values[i][j]
+                left_is_fixed = (i, j - 1) in fixed_cells_map
+                right_is_fixed = (i, j) in fixed_cells_map
+
+                # Different if: different values, or one is fixed and other isn't
+                if (left_val != right_val or left_is_fixed != right_is_fixed or
+                    (left_is_fixed and right_is_fixed and
+                     fixed_cells_map[(i, j-1)] != fixed_cells_map[(i, j)])):
                     ax.plot([j - 0.5, j - 0.5], [i - 0.5, i + 0.5], 'k-', linewidth=2)
 
     # Add block index labels in each cell
     for i in range(nrows):
         for j in range(ncols):
             cell_val = board.values[i][j]
-            if cell_val > 0:
+            # Check if this is a fixed cell
+            if (i, j) in fixed_cells_map:
+                fixed_type = fixed_cells_map[(i, j)]
+                ax.text(j, i, f'F{fixed_type}', ha='center', va='center',
+                       fontsize=12, fontweight='bold', color='darkblue')
+            elif cell_val > 0:
                 ax.text(j, i, str(cell_val), ha='center', va='center',
                        fontsize=14, fontweight='bold', color='black')
             elif cell_val == -1:

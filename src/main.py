@@ -8,6 +8,7 @@ class QuizSolver:
         self.limits = fu.get_quiz_limits('../resources/quiz.toml')
         self.board = fu.get_quiz_board('../resources/quiz.toml')
         self.blocks = fu.get_quiz_blocks('../resources/quiz.toml')
+        self.fixed_cells_map = fu.get_fixed_cells_map('../resources/quiz.toml')
 
     def can_place(self, block: Block, row: int, col: int) -> bool:
         """ Check if a block can be placed on the board at the specified position """
@@ -26,6 +27,7 @@ class QuizSolver:
     def check_limits(self) -> int:
         """
         Check if the current board state respects the row and column limits for each block type
+        Fixed cells (represented by negative values < -1) are counted towards their type's limits
         Returns:
             `-1` if limits are exceeded,
             `1` if limits are not yet reached,
@@ -37,11 +39,17 @@ class QuizSolver:
         # Check limits for each type
         for block_type, limits in self.limits.items():
             # Check row limits (limits[1])
-            for (i, row) in enumerate(self.board.values):
-                filled_cells = sum(
-                    1 for cell in row
-                    if cell > 0 and block_type_map.get(cell) == block_type
-                )
+            for i in range(self.board.nrows):
+                filled_cells = 0
+                for j in range(self.board.ncols):
+                    cell_val = self.board.values[i][j]
+                    # Count fixed cells of this type (negative values)
+                    if (i, j) in self.fixed_cells_map and self.fixed_cells_map[(i, j)] == block_type:
+                        filled_cells += 1
+                    # Count placed blocks of this type (positive values)
+                    elif cell_val > 0 and block_type_map.get(cell_val) == block_type:
+                        filled_cells += 1
+
                 if filled_cells > limits[1][i]:
                     return -1
                 elif filled_cells < limits[1][i]:
@@ -49,10 +57,16 @@ class QuizSolver:
 
             # Check column limits (limits[0])
             for j in range(self.board.ncols):
-                filled_cells = sum(
-                    1 for i in range(self.board.nrows)
-                    if self.board.values[i][j] > 0 and block_type_map.get(self.board.values[i][j]) == block_type
-                )
+                filled_cells = 0
+                for i in range(self.board.nrows):
+                    cell_val = self.board.values[i][j]
+                    # Count fixed cells of this type
+                    if (i, j) in self.fixed_cells_map and self.fixed_cells_map[(i, j)] == block_type:
+                        filled_cells += 1
+                    # Count placed blocks of this type
+                    elif cell_val > 0 and block_type_map.get(cell_val) == block_type:
+                        filled_cells += 1
+
                 if filled_cells > limits[0][j]:
                     return -1
                 elif filled_cells < limits[0][j]:
@@ -142,7 +156,7 @@ class QuizSolver:
                     print(f"Block {self.blocks[idx].index}: Rotated {rotation * 90} degrees")
 
             # Visualize the solution
-            vis.visualize_solution(self.board, self.blocks, self.limits)
+            vis.visualize_solution(self.board, self.blocks, self.limits, self.fixed_cells_map)
             plt.show()
 
             return True

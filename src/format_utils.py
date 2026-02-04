@@ -11,10 +11,36 @@ def read_toml_file(file_path: str) -> dict:
 def get_quiz_board(file_path: str) -> Board:
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
-    nrows = len(data['board'])
-    ncols = len(data['board'][0]) if nrows > 0 else 0
-    board = Board(nrows, ncols)
-    board.fill_from_matrix(data['board'])
+
+    # Support new coordinate-based format
+    if 'nrows' in data and 'ncols' in data:
+        nrows = data['nrows']
+        ncols = data['ncols']
+        board = Board(nrows, ncols)
+
+        # Mark invalid cells
+        if 'invalid' in data:
+            for coord in data['invalid']:
+                row, col = coord
+                board.values[row][col] = -1
+
+        # Mark fixed cells for each type
+        for key in data:
+            if key.startswith('fixed_type'):
+                type_num = int(key.replace('fixed_type', ''))
+                for coord in data[key]:
+                    row, col = coord
+                    board.values[row][col] = -(type_num + 2)  # -2 for type0, -3 for type1, etc.
+
+    # Support old matrix-based format
+    elif 'board' in data:
+        nrows = len(data['board'])
+        ncols = len(data['board'][0]) if nrows > 0 else 0
+        board = Board(nrows, ncols)
+        board.fill_from_matrix(data['board'])
+    else:
+        raise ValueError("Invalid board format in config file")
+
     return board
 
 def get_quiz_limits(file_path: str) -> dict[int, list[list[int]]]:
@@ -63,14 +89,25 @@ def get_quiz_blocks(file_path: str) -> list[Block]:
 
     return blocks
 
-def get_test_answer(file_path: str) -> Board:
+
+def get_fixed_cells_map(file_path: str) -> dict[tuple[int, int], int]:
+    """
+    Get a mapping of fixed cell coordinates to their types
+    Returns: dict mapping (row, col) -> block_type
+    """
     with open(file_path, 'rb') as file:
         data = tomllib.load(file)
-    nrows = len(data['board'])
-    ncols = len(data['board'][0]) if nrows > 0 else 0
-    board = Board(nrows, ncols)
-    board.fill_from_matrix(data['board'])
-    return board
+
+    fixed_map = {}
+    for key in data:
+        if key.startswith('fixed_type'):
+            type_num = int(key.replace('fixed_type', ''))
+            for coord in data[key]:
+                row, col = coord
+                fixed_map[(row, col)] = type_num
+
+    return fixed_map
+
 
 if __name__ == '__main__':
     print(get_quiz_blocks('../test/blocks.toml')[2])
